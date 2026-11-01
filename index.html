@@ -206,7 +206,7 @@ PANDUAN EDIT CEPAT:
    <button class="btn" type="submit">Kirim Ucapan</button>
   </form>
   <div class="wish-list" id="wishList"></div>
-  <p class="local-note"...</p>
+  <p class="local-note">Ucapan akan tampil di bawah setelah terkirim.</p>
  </div>
 </section>
 
@@ -250,21 +250,46 @@ function copyAccount(){
  const number = $("accountNumber").textContent.trim();
  if(number.startsWith("[")){alert("Isi nomor rekening terlebih dahulu.");return;}
  navigator.clipboard.writeText(number).then(()=>alert("Nomor rekening berhasil disalin."));
+const WISH_API = "https://script.google.com/macros/s/AKfycbzl9jSyFB_Lq5hrsHMzVdXmBiosMLLF2eu0UgUsUpvKmxIoE4Qln1k3fYD4PLca-dZOpg/exec";
+
+async function loadWishes(){
+ try{
+  const res = await fetch(WISH_API);
+  const wishes = await res.json();
+  $("wishList").innerHTML = wishes.length
+   ? wishes.map(w=>`<div class="wish"><b>${escapeHtml(w.name)}</b> <span class="muted">· ${escapeHtml(w.attendance)}</span><div>${escapeHtml(w.message)}</div></div>`).join("")
+   : '<p class="muted" style="text-align:center">Belum ada ucapan. Jadilah yang pertama!</p>';
+ }catch(e){
+  $("wishList").innerHTML = '<p class="muted" style="text-align:center">Ucapan belum bisa dimuat.</p>';
+ }
 }
-function renderWishes(){
- const wishes = JSON.parse(localStorage.getItem("afidaHabibWishes")||"[]");
- $("wishList").innerHTML = wishes.map(w=>`<div class="wish"><b>${escapeHtml(w.name)}</b> <span class="muted">· ${escapeHtml(w.attendance)}</span><div>${escapeHtml(w.message)}</div></div>`).join("");
-}
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-$("wishForm").addEventListener("submit",e=>{
+
+$("wishForm").addEventListener("submit", async e=>{
  e.preventDefault();
- const wishes=JSON.parse(localStorage.getItem("afidaHabibWishes")||"[]");
- wishes.unshift({name:$("name").value,attendance:$("attendance").value,message:$("message").value});
- localStorage.setItem("afidaHabibWishes",JSON.stringify(wishes));
- e.target.reset();renderWishes();
- alert("Ucapan tersimpan di browser ini. Untuk menerima ucapan secara online, sambungkan formulir ke layanan formulir.");
+ const form = e.target;
+ const btn = form.querySelector("button[type=submit]");
+ btn.disabled = true; btn.textContent = "Mengirim...";
+ try{
+  const res = await fetch(WISH_API,{
+   method:"POST",
+   body: JSON.stringify({
+    name: $("name").value,
+    attendance: $("attendance").value,
+    message: $("message").value
+   })
+  });
+  const out = await res.json();
+  if(!out.ok) throw new Error();
+  form.reset();
+  await loadWishes();
+  alert("Terima kasih, ucapan Anda sudah terkirim.");
+ }catch(err){
+  alert("Maaf, ucapan gagal terkirim. Coba lagi ya.");
+ }
+ btn.disabled = false; btn.textContent = "Kirim Ucapan";
 });
-renderWishes();
+
+loadWishes();
 const siteHeader = $("siteHeader");
 function toggleHeader(){
  siteHeader.classList.toggle("show", window.scrollY > window.innerHeight * 0.6);
