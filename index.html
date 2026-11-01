@@ -265,6 +265,12 @@ $("wishForm").addEventListener("submit",e=>{
  alert("Ucapan tersimpan di browser ini. Untuk menerima ucapan secara online, sambungkan formulir ke layanan formulir.");
 });
 renderWishes();
+const siteHeader = $("siteHeader");
+function toggleHeader(){
+ siteHeader.classList.toggle("show", window.scrollY > window.innerHeight * 0.6);
+}
+window.addEventListener("scroll", toggleHeader, {passive:true});
+toggleHeader();
 </script>
 </body>
 </html>
